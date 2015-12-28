@@ -34,21 +34,23 @@
       (concat sub e))))
 
 (defn find-next-word2
-  [d e]
-  (loop [m [] s (set (map inc e))]
-    (if (and (< (count m) 100) (not (empty? s)))
-      (let [nw (reduce concat []
-                       (filter #(> (count %) 1)
-                               (map
-                                #(set/intersection s (val %))
-                                d)))
-            nm (set/intersection (set (map dec nw)))]
-        (recur
-         (concat m nm nw)
-         (set (map inc nw)))
-        )
-      m))
-  )
+  "贪婪匹配"
+  ([d e]
+   (find-next-word2 d e 3))
+  ([d e ^long i]
+   (loop [m [] s (set (map inc e))]
+     (if (not (empty? s))
+       (let [nw (reduce concat []
+                        (filter #(> (count %) i)
+                                (map
+                                 #(set/intersection s (val %))
+                                 d)))
+             nm (set/intersection (set (map dec nw)))]
+         (recur
+          (concat m nm nw)
+          (set (map inc nw)))
+         )
+       m))))
 (defn read-txt-file [path]
   "read txt file,return character collection"
   (with-open [reader (io/reader path)]
@@ -76,16 +78,17 @@
 (defn -main
   "parse txt, find word"
   [& args]
-  (let [chars (read-txt-file "D:\\1.txt")
+  (let [chars (read-txt-file "/home/liuchunhua/1.txt")
         dict (find-repeat-word chars)
-        nums (sort (set
-                    (reduce concat
-                            (map (partial find-next-word2 dict) (vals dict)))))
-        split-num (find-word-bound nums)
-        strs (map (fn [x] (let [[a b] x] (subs (str/join chars) a b)))
-                  (partition 2 split-num))
+        nums (filter seq
+                     (reduce conj []
+                             (map
+                              (partial find-next-word2 dict)
+                              (vals dict))))
         ]
-    (println split-num)
-    (println (count chars))
-    (doseq [s strs]
-      (println s))))
+    (doseq [s nums]
+      (let [article (str/join chars)
+            m (map #(apply subs article %)
+                   (partition 2 (find-word-bound (sort (set s)))))]
+        (doseq [w m]
+          (println w))))))

@@ -63,23 +63,29 @@
         ]
     (apply dissoc dict keyset)))
 
+(defn find-word-bound [col]
+  (loop [m (transient (vector (first col))) c col]
+    (if (> (count c) 1)
+      (recur
+       (let [a (first c) b (first (rest c))]
+         (if (= (inc a) b) nil (reduce conj! m [a b]))
+         m)
+       (rest c))
+      (persistent! m))))
+
 (defn -main
   "parse txt, find word"
   [& args]
-  (let [chars (read-txt-file "/home/liuchunhua/1.txt")
+  (let [chars (read-txt-file "D:\\1.txt")
         dict (find-repeat-word chars)
         nums (sort (set
                     (reduce concat
                             (map (partial find-next-word2 dict) (vals dict)))))
-        split-num (filter #(not (nil? %))
-                          (map
-                           (fn [x] (let [[a b] x] (if (= (inc a) b) nil a)))
-                           (partition 2 nums)))
+        split-num (find-word-bound nums)
         strs (map (fn [x] (let [[a b] x] (subs (str/join chars) a b)))
-                  (partition 2 (conj split-num 0)))
+                  (partition 2 split-num))
         ]
     (println split-num)
     (println (count chars))
     (doseq [s strs]
-      (println s))
-    ))
+      (println s))))

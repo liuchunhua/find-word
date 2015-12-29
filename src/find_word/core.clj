@@ -21,22 +21,10 @@
     (transient {})
     (map (fn [x y] (vector x y)) col (range (count col))))))
 
-(defn find-next-word
-  "return set"
-  [d e]
-  (let [s (set (map inc e))
-        sub (reduce
-             concat {}
-             (filter #(> (count %) 1)
-                     (map #(set/intersection s (val %)) d)))]
-    (if (empty? sub)
-      sub
-      (concat sub e))))
-
-(defn find-next-word2
-  "贪婪匹配"
+(defn find-next-character
+  "d为字符的位置字典，e为某个字符的位置集合，i为下一个字符出现的频率。"
   ([d e]
-   (find-next-word2 d e 3))
+   (find-next-character d e 3))
   ([d e ^long i]
    (loop [m [] s (set (map inc e))]
      (if (not (empty? s))
@@ -66,6 +54,7 @@
     (apply dissoc dict keyset)))
 
 (defn find-word-bound [col]
+  "col为某个词语在文章中位置的集合，返还词语的开始s, 结束e [[s,e]...]"
   (loop [m (transient (vector (first col))) c col]
     (if (> (count c) 1)
       (recur
@@ -75,20 +64,29 @@
        (rest c))
       (persistent! m))))
 
+(defn find-word-position
+  "dict为字符的位置字典,返回词语中所有字符位置集合[[]...]"
+  [dict]
+  (filter seq
+          (reduce conj []
+                  (map
+                   (partial find-next-character dict)
+                   (vals dict)))))
+
+(defn find-word
+  "找出文章中的词语，article为文章, col为词语在文章中的字符位置"
+  [article col]
+  (let [m (partition 2 (find-word-bound (sort (set col))))]
+    (map #(subs article (first %) (inc (last %))) m)))
+
 (defn -main
   "parse txt, find word"
-  [& args]
-  (let [chars (read-txt-file "/home/liuchunhua/1.txt")
+  [ f & args]
+  (let [chars (read-txt-file f)
+        article (str/join chars)
         dict (find-repeat-word chars)
-        nums (filter seq
-                     (reduce conj []
-                             (map
-                              (partial find-next-word2 dict)
-                              (vals dict))))
+        nums (find-word-position dict)
         ]
     (doseq [s nums]
-      (let [article (str/join chars)
-            m (map #(apply subs article %)
-                   (partition 2 (find-word-bound (sort (set s)))))]
-        (doseq [w m]
-          (println w))))))
+      (doseq [w (find-word article s)] (println w)))
+    ))

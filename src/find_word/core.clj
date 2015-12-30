@@ -33,7 +33,7 @@
                                 (map
                                  #(set/intersection s (val %))
                                  d)))
-             nm (set/intersection (set (map dec nw)))]
+             nm (set (map dec nw))]
          (recur
           (concat m nm nw)
           (set (map inc nw)))
@@ -80,13 +80,21 @@
     (map #(subs article (first %) (inc (last %))) m)))
 
 (defn -main
+
   "parse txt, find word"
   [ f & args]
   (let [chars (read-txt-file f)
         article (str/join chars)
         dict (find-repeat-word chars)
         nums (find-word-position dict)
+        words (reduce concat (map #(partition 2 (find-word-bound (sort (set %)))) nums))
         ]
-    (doseq [s nums]
-      (doseq [w (find-word article s)] (println w)))
-    ))
+    ;; (doseq [s nums]qqq
+    ;;   (doseq [w (find-word article s)] (println w))
+    (doseq [s (remove #(some
+                        (fn [x]
+                          (let [[a b] x [c d] %]
+                            (and (> c a) (> b c) (> d a) (>= b d)))) words) words)]
+      (let [[a b] s] (println s (subs article a (inc b)))))
+    )
+  )
